@@ -6,7 +6,6 @@ app = Flask(__name__)
 CORS(app)
 
 # Replace with your OpenAI API key
-openai.api_key = "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"
 
 @app.route('/resume-generator', methods=['POST'])
 def generateresume():
