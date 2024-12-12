@@ -1,30 +1,41 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-import openai
+import requests
 
 app = Flask(__name__)
-CORS(app)
 
-# Replace with your OpenAI API key
+# Ollama API configuration
+OLLAMA_API_URL = "https://api.ollama.ai/v1/generate"  # Replace with the actual endpoint
+OLLAMA_API_KEY = "your_api_key_here"  # Replace with your actual API key
 
-@app.route('/resume-generator', methods=['POST'])
-def generateresume():
-    data = request.json
-    text = data.get("text", "")
+@app.route('/generate_resume', methods=['POST'])
+def generate_resume():
+    """
+    This route handles AI-based resume generation.
+    """
+    # Extract user input (structured JSON payload from the frontend)
+    data = request.json.get('user_input', '{}')
+    user_input = f"Generate a resume based on the following details: {data}"
 
-    if not text:
-        return jsonify({"error": "No text provided"}), 400
+    # Prepare the request for the Ollama API
+    headers = {
+        'Authorization': f'Bearer {OLLAMA_API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'model': 'resume-generator',  # Use the specific model name for resumes
+        'input': user_input
+    }
 
-    try:
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=f"Summarize the following text into a professional and concise resume format:\n\n{text}",
-            max_tokens=150,
-        )
-        summary = response.choices[0].text.strip()
-        return jsonify({"summary": summary})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Send request to Ollama API
+    response = requests.post(OLLAMA_API_URL, headers=headers, json=payload)
+
+    # Handle response from Ollama
+    if response.status_code == 200:
+        generated_resume = response.json().get('text', '')
+        return jsonify({'resume': generated_resume})
+    else:
+        error_message = response.json().get('error', 'Failed to generate resume')
+        return jsonify({'error': error_message}), response.status_code
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5500)
+    app.run(debug=True)
